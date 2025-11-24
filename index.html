@@ -4,9 +4,324 @@
   <meta charset="UTF-8" />
   <title>小小計算機</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f3f4f6;
+    }
+
+    .calculator {
+      width: 320px;
+      background: #111827;
+      color: #f9fafb;
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .calc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #9ca3af;
+      font-size: 0.8rem;
+      padding: 0 4px;
+    }
+
+    .brand {
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+    }
+
+    .screen {
+      background: #020617;
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-height: 70px;
+    }
+
+    .history {
+      min-height: 16px;
+      font-size: 0.8rem;
+      color: #6b7280;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .display {
+      font-size: 1.9rem;
+      text-align: right;
+      word-break: break-all;
+      overflow: hidden;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 14px 0;
+      font-size: 1rem;
+      cursor: pointer;
+      background: #1f2937;
+      color: #e5e7eb;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease;
+      box-shadow: 0 4px 0 rgba(15, 23, 42, 0.9);
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(15, 23, 42, 0.9);
+    }
+
+    button.operator {
+      background: #374151;
+    }
+
+    button.operator.secondary {
+      background: #4b5563;
+    }
+
+    button.equal {
+      background: #f97316;
+      color: #111827;
+      font-weight: 600;
+    }
+
+    button.function {
+      background: #0f172a;
+      color: #e5e7eb;
+      font-size: 0.9rem;
+    }
+
+    button.zero {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 360px) {
+      .calculator {
+        width: 100%;
+        margin: 12px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>小小計算機</h1>
-  <p>這是簡易範例，可正常開啟。</p>
+  <div class="calculator">
+    <div class="calc-header">
+      <div class="brand">Mini Calc</div>
+      <div>🧮 v1.0</div>
+    </div>
+
+    <div class="screen">
+      <div id="history" class="history"></div>
+      <div id="display" class="display">0</div>
+    </div>
+
+    <div class="buttons">
+      <button class="function" data-action="clear">AC</button>
+      <button class="function" data-action="backspace">⌫</button>
+      <button class="function" data-action="percent">%</button>
+      <button class="operator secondary" data-value="/">÷</button>
+
+      <button data-value="7">7</button>
+      <button data-value="8">8</button>
+      <button data-value="9">9</button>
+      <button class="operator secondary" data-value="*">×</button>
+
+      <button data-value="4">4</button>
+      <button data-value="5">5</button>
+      <button data-value="6">6</button>
+      <button class="operator secondary" data-value="-">−</button>
+
+      <button data-value="1">1</button>
+      <button data-value="2">2</button>
+      <button data-value="3">3</button>
+      <button class="operator secondary" data-value="+">+</button>
+
+      <button class="zero" data-value="0">0</button>
+      <button data-value=".">.</button>
+      <button class="equal" data-action="equals">=</button>
+    </div>
+  </div>
+
+  <script>
+    const displayEl = document.getElementById("display");
+    const historyEl = document.getElementById("history");
+    const buttons = document.querySelector(".buttons");
+
+    let current = "0";
+    let history = "";
+    let justCalculated = false;
+
+    function updateDisplay() {
+      displayEl.textContent = current || "0";
+      historyEl.textContent = history;
+    }
+
+    function appendValue(value) {
+      if (justCalculated && /[0-9.]/.test(value)) {
+        // 剛算完又輸入數字，重開一個算式
+        current = value === "." ? "0." : value;
+        history = "";
+        justCalculated = false;
+        updateDisplay();
+        return;
+      }
+      justCalculated = false;
+
+      if (/[+\-*/]/.test(value)) {
+        // 處理運算符
+        if (/[+\-*/]$/.test(current)) {
+          // 重複按運算符 -> 替換
+          current = current.slice(0, -1) + value;
+        } else {
+          current += value;
+        }
+      } else if (value === ".") {
+        // 小數點：避免同一段數字有兩個 .
+        const parts = current.split(/[+\-*/]/);
+        const last = parts[parts.length - 1];
+        if (!last.includes(".")) {
+          current += value;
+        }
+      } else {
+        // 數字
+        if (current === "0" && value !== ".") {
+          current = value;
+        } else {
+          current += value;
+        }
+      }
+      updateDisplay();
+    }
+
+    function clearAll() {
+      current = "0";
+      history = "";
+      justCalculated = false;
+      updateDisplay();
+    }
+
+    function backspace() {
+      if (justCalculated) {
+        clearAll();
+        return;
+      }
+      if (current.length <= 1) {
+        current = "0";
+      } else {
+        current = current.slice(0, -1);
+      }
+      updateDisplay();
+    }
+
+    function percent() {
+      try {
+        const value = evalSafe(current);
+        current = (value / 100).toString();
+        history = "";
+        justCalculated = true;
+        updateDisplay();
+      } catch {
+        current = "錯誤";
+        history = "";
+        justCalculated = true;
+        updateDisplay();
+      }
+    }
+
+    function evalSafe(expr) {
+      // 簡單防呆，只允許數字與基本運算符
+      if (!/^[0-9.+\-*/ ]+$/.test(expr)) {
+        throw new Error("invalid");
+      }
+      // 使用 Function 來計算
+      // eslint-disable-next-line no-new-func
+      return Function("return " + expr)();
+    }
+
+    function calculate() {
+      try {
+        const expr = current.replace(/÷/g, "/").replace(/×/g, "*");
+        const result = evalSafe(expr);
+        history = current + " =";
+        current = String(result);
+        justCalculated = true;
+        updateDisplay();
+      } catch {
+        current = "錯誤";
+        history = "";
+        justCalculated = true;
+        updateDisplay();
+      }
+    }
+
+    buttons.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+      const value = btn.dataset.value;
+
+      if (action === "clear") {
+        clearAll();
+      } else if (action === "backspace") {
+        backspace();
+      } else if (action === "percent") {
+        percent();
+      } else if (action === "equals") {
+        calculate();
+      } else if (value !== undefined) {
+        appendValue(value);
+      }
+    });
+
+    // 簡單支援鍵盤輸入
+    document.addEventListener("keydown", (e) => {
+      const key = e.key;
+
+      if (/[0-9]/.test(key)) {
+        appendValue(key);
+      } else if (["+", "-", "*", "/"].includes(key)) {
+        appendValue(key);
+      } else if (key === "." || key === ",") {
+        appendValue(".");
+      } else if (key === "Enter" || key === "=") {
+        e.preventDefault();
+        calculate();
+      } else if (key === "Backspace") {
+        backspace();
+      } else if (key.toLowerCase() === "c") {
+        clearAll();
+      } else if (key === "%") {
+        percent();
+      }
+    });
+
+    updateDisplay();
+  </script>
 </body>
 </html>
